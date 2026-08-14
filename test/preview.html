@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>晚餐大全（預覽模式）</title>
+<link rel="stylesheet" href="../css/style.css">
+
+<!--
+  預覽模式：把資料層換成 test/mock-db.js，資料存在瀏覽器本機，
+  不需要 Supabase 就能把整個網站點過一遍。
+
+  登入用任意 Email + 密碼 demo。
+
+  正式使用請開 index.html，不要開這一頁。
+-->
+<script type="importmap">
+{
+  "imports": {
+    "/js/db.js": "/test/mock-db.js",
+    "/js/config.js": "/test/mock-config.js"
+  }
+}
+</script>
+<style>
+  .preview-banner {
+    background: #b06a00; color: #fff; text-align: center;
+    font-size: 13px; font-weight: 700; padding: 6px 12px;
+  }
+  .preview-banner button {
+    margin-left: 8px; font: inherit; font-size: 12px;
+    background: rgba(255,255,255,.2); color: #fff;
+    border: none; border-radius: 999px; padding: 2px 10px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  預覽模式 · 資料只存在這台裝置 · 登入密碼是 demo
+  <button id="reset-preview" type="button">重設資料</button>
+</div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button id="back-btn" class="icon-btn" type="button" aria-label="返回" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="topbar-title">
+      <h1 id="page-title">晚餐大全</h1>
+      <p id="page-subtitle" class="topbar-sub"></p>
+    </div>
+    <div id="topbar-actions" class="topbar-actions"></div>
+  </div>
+</header>
+
+<main id="view" class="view" tabindex="-1"></main>
+
+<dialog id="login-dialog" class="dialog">
+  <form id="login-form" method="dialog" class="dialog-body">
+    <h2 class="dialog-title">登入以編輯</h2>
+    <p class="dialog-hint">預覽模式：Email 隨便填，密碼輸入 demo。</p>
+    <label class="field">
+      <span class="field-label">Email</span>
+      <input id="login-email" type="email" name="email" autocomplete="username"
+             inputmode="email" required placeholder="you@example.com">
+    </label>
+    <label class="field">
+      <span class="field-label">密碼</span>
+      <input id="login-password" type="password" name="password" autocomplete="current-password" required>
+    </label>
+    <p id="login-error" class="form-error" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-close-dialog>取消</button>
+      <button id="login-submit" type="submit" class="btn btn-primary">登入</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module">
+  import { resetPreviewData } from './mock-db.js';
+  document.getElementById('reset-preview').addEventListener('click', () => {
+    resetPreviewData();
+    location.reload();
+  });
+</script>
+<script type="module" src="../js/app.js"></script>
+</body>
+</html>

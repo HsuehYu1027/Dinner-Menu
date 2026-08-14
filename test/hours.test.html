@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hours.js 測試</title>
+<style>
+  body { font: 16px/1.6 system-ui, "Microsoft JhengHei", sans-serif; margin: 0; padding: 24px; background: #f6f7f9; color: #1a1a1a; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .summary { padding: 12px 16px; border-radius: 10px; font-weight: 700; margin: 16px 0; }
+  .summary.ok { background: #d9f2e0; color: #14622f; }
+  .summary.bad { background: #fbdcdc; color: #8c1c1c; }
+  .group { margin-top: 20px; font-weight: 700; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .case { display: flex; gap: 8px; padding: 5px 0; align-items: baseline; font-size: 15px; }
+  .mark { flex: none; width: 1.4em; font-weight: 700; }
+  .pass .mark { color: #17914a; }
+  .fail .mark { color: #cc2222; }
+  .fail { color: #cc2222; }
+  .detail { color: #777; font-size: 13px; margin-left: 1.4em; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #16181c; color: #e6e6e6; }
+    .group { color: #aaa; border-color: #333; }
+    .detail { color: #999; }
+  }
+</style>
+</head>
+<body>
+<h1>hours.js 測試</h1>
+<p>驗證營業時間判斷邏輯。全部綠色勾勾代表通過。</p>
+<div id="summary" class="summary">執行中…</div>
+<div id="out"></div>
+
+<script type="module">
+import {
+  getStoreStatus, formatDayHours, validateHours, toMinutes, toTimeLabel,
+} from '../js/hours.js';
+
+// ---------- 測試工具 ----------
+const out = document.getElementById('out');
+let passed = 0;
+let failed = 0;
+
+function group(title) {
+  const el = document.createElement('div');
+  el.className = 'group';
+  el.textContent = title;
+  out.appendChild(el);
+}
+
+function check(name, actual, expected) {
+  const ok = JSON.stringify(actual) === JSON.stringify(expected);
+  ok ? passed++ : failed++;
+  const el = document.createElement('div');
+  el.className = 'case ' + (ok ? 'pass' : 'fail');
+  el.innerHTML = `<span class="mark">${ok ? '✓' : '✗'}</span><span>${name}</span>`;
+  out.appendChild(el);
+  if (!ok) {
+    const d = document.createElement('div');
+    d.className = 'detail';
+    d.textContent = `預期 ${JSON.stringify(expected)}，實際得到 ${JSON.stringify(actual)}`;
+    out.appendChild(d);
+  }
+}
+
+// 2024-01-07 是星期日，所以 Jan 7 + day 剛好對應 getDay() 0–6。
+// 這樣測試裡就能直接寫「週三 12:00」而不必自己算日期。
+function at(day, hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return new Date(2024, 0, 7 + day, h, m);
+}
+
+// ---------- 測試資料 ----------
+// 一般便當店：平日午晚兩段，週六只有晚上，週日公休
+const bento = {
+  '0': [],
+  '1': [['11:00', '14:00'], ['17:00', '20:30']],
+  '2': [['11:00', '14:00'], ['17:00', '20:30']],
+  '3': [['11:00', '14:00'], ['17:00', '20:30']],
+  '4': [['11:00', '14:00'], ['17:00', '20:30']],
+  '5': [['11:00', '14:00'], ['17:00', '20:30']],
+  '6': [['17:00', '21:00']],
+};
+
+// 宵夜店：週二、週三營業到隔天凌晨兩點，其餘公休
+const latenight = {
+  '0': [], '1': [], '2': [['17:00', '02:00']], '3': [['17:00', '02:00']],
+  '4': [], '5': [], '6': [],
+};
+
+// 只有週一營業
+const mondayOnly = { '0': [], '1': [['11:00', '14:00']], '2': [], '3': [], '4': [], '5': [], '6': [] };
+
+const s = (hours, day, time, tempClosed = false) => getStoreStatus(hours, tempClosed, at(day, time));
+
+// ---------- 基本時間轉換 ----------
+group('時間轉換');
+check('toMinutes("09:05")', toMinutes('09:05'), 545);
+check('toMinutes("00:00")', toMinutes('00:00'), 0);
+check('toMinutes("24:00") 不合法', toMinutes('24:00'), null);
+check('toMinutes("9:5") 不合法', toMinutes('9:5'), null);
+check('toTimeLabel(545)', toTimeLabel(545), '09:05');
+check('toTimeLabel(1560) 超過一天會繞回', toTimeLabel(1560), '02:00');
+
+// ---------- 一般營業時段 ----------
+group('一般營業時段');
+check('週三 12:00 營業中', s(bento, 3, '12:00').state, 'open');
+check('週三 12:00 顯示 14:00 打烊', s(bento, 3, '12:00').closesAt, '14:00');
+check('週三 11:00 開店當下算營業中', s(bento, 3, '11:00').state, 'open');
+check('週三 10:59 尚未開店', s(bento, 3, '10:59').state, 'closed');
+check('週三 14:00 收店當下算休息中', s(bento, 3, '14:00').state, 'closed');
+
+// ---------- 午休空檔（分兩段的重點）----------
+group('午休空檔');
+check('週三 15:30 在午休空檔 → 休息中', s(bento, 3, '15:30').state, 'closed');
+check('週三 15:30 提示今天 17:00 再開', s(bento, 3, '15:30').label, '休息中 · 今天 17:00 開');
+check('週三 17:00 晚餐時段開始', s(bento, 3, '17:00').state, 'open');
+
+// ---------- 即將打烊 ----------
+group('即將打烊（60 分鐘內）');
+check('週三 19:29 還不算即將打烊', s(bento, 3, '19:29').state, 'open');
+check('週三 19:30 剛好 60 分鐘 → 即將打烊', s(bento, 3, '19:30').state, 'closing_soon');
+check('週三 20:00 即將打烊', s(bento, 3, '20:00').state, 'closing_soon');
+check('即將打烊也算開著', s(bento, 3, '20:00').isOpen, true);
+
+// ---------- 跨夜營業（最容易寫錯的地方）----------
+group('跨夜營業');
+check('週二 23:00 營業中', s(latenight, 2, '23:00').state, 'open');
+check('週二 23:00 顯示 02:00 打烊', s(latenight, 2, '23:00').closesAt, '02:00');
+check('週三 01:00 仍是週二那攤 → 營業中', s(latenight, 3, '01:00').isOpen, true);
+check('週三 01:30 剩 30 分 → 即將打烊', s(latenight, 3, '01:30').state, 'closing_soon');
+check('週三 02:00 已收店', s(latenight, 3, '02:00').state, 'closed');
+check('週三 02:00 提示今天 17:00 開', s(latenight, 3, '02:00').label, '休息中 · 今天 17:00 開');
+check('週四 01:00 是週三跨過來的 → 營業中', s(latenight, 4, '01:00').isOpen, true);
+check('週五 01:00 週四沒營業 → 休息中', s(latenight, 5, '01:00').state, 'closed');
+
+// ---------- 公休與下一次開店 ----------
+group('公休與下一次開店');
+check('週日公休 → 休息中', s(bento, 0, '12:00').state, 'closed');
+check('週日提示明天 11:00 開', s(bento, 0, '12:00').label, '休息中 · 明天 11:00 開');
+check('週六 22:00 收攤後跨過週日公休', s(bento, 6, '22:00').label, '休息中 · 週一 11:00 開');
+check('下一次開店在 2 天後', s(bento, 6, '22:00').nextOpen.daysAhead, 2);
+check('只有週一營業，週一下午 → 下週一才開', s(mondayOnly, 1, '15:00').nextOpen.daysAhead, 7);
+check('只有週一營業，週一下午的文字', s(mondayOnly, 1, '15:00').label, '休息中 · 週一 11:00 開');
+check('只有週一營業，週三 → 下週一', s(mondayOnly, 3, '12:00').nextOpen.daysAhead, 5);
+
+// ---------- 臨時公休與未設定 ----------
+group('臨時公休與未設定');
+check('臨時公休蓋過營業時間', s(bento, 3, '12:00', true).state, 'closed');
+check('臨時公休的文字', s(bento, 3, '12:00', true).label, '臨時公休');
+check('完全沒設定時間', getStoreStatus({}, false, at(3, '12:00')).label, '未設定營業時間');
+check('七天都空陣列', getStoreStatus({ 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }, false, at(3, '12:00')).state, 'closed');
+check('hours 是 null 也不會爆掉', getStoreStatus(null, false, at(3, '12:00')).state, 'closed');
+
+// ---------- 顯示文字 ----------
+group('顯示文字');
+check('沒時段顯示公休', formatDayHours([]), '公休');
+check('兩段合併顯示', formatDayHours([['11:00', '14:00'], ['17:00', '20:30']]), '11:00–14:00、17:00–20:30');
+check('跨夜標註隔日', formatDayHours([['17:00', '02:00']]), '17:00–02:00（隔日）');
+
+// ---------- 編輯時的驗證 ----------
+group('編輯時的驗證');
+check('正常資料沒有錯誤', validateHours(bento), []);
+check('跨夜不算重疊', validateHours(latenight), []);
+check('只填開始時間', validateHours({ 1: [['11:00', '']] }), ['週一：開始與結束時間要一起填']);
+check('時段重疊', validateHours({ 1: [['11:00', '15:00'], ['14:00', '20:00']] }), ['週一：兩個時段重疊了']);
+check('時段相接不算重疊', validateHours({ 1: [['11:00', '14:00'], ['14:00', '20:00']] }), []);
+check('格式錯誤', validateHours({ 2: [['1100', '14:00']] }), ['週二：時間格式不正確']);
+check('兩邊都空白會被忽略', validateHours({ 3: [['', '']] }), []);
+
+// ---------- 結果 ----------
+const summary = document.getElementById('summary');
+summary.className = 'summary ' + (failed === 0 ? 'ok' : 'bad');
+summary.textContent = failed === 0
+  ? `全部通過：${passed} 項`
+  : `${failed} 項失敗、${passed} 項通過`;
+</script>
+</body>
+</html>
