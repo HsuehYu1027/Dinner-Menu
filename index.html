@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover 讓版面延伸到 iPhone 瀏海與底部橫條區域，再由 CSS 的 safe-area 補回內距 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="晚餐店家與菜單清單">
+<meta name="theme-color" content="#f0f1f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15171b" media="(prefers-color-scheme: dark)">
+<title>晚餐大全</title>
+
+<!-- 加到主畫面後以全螢幕開啟 -->
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="晚餐大全">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button id="back-btn" class="icon-btn" type="button" aria-label="返回" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="topbar-title">
+      <h1 id="page-title">晚餐大全</h1>
+      <p id="page-subtitle" class="topbar-sub"></p>
+    </div>
+    <div id="topbar-actions" class="topbar-actions"></div>
+  </div>
+</header>
+
+<main id="view" class="view" tabindex="-1"></main>
+
+<!-- 登入視窗 -->
+<dialog id="login-dialog" class="dialog">
+  <form id="login-form" method="dialog" class="dialog-body">
+    <h2 class="dialog-title">登入以編輯</h2>
+    <p class="dialog-hint">只有你需要登入。其他人不用登入也看得到店家與菜單。</p>
+
+    <label class="field">
+      <span class="field-label">Email</span>
+      <input id="login-email" type="email" name="email" autocomplete="username"
+             inputmode="email" required placeholder="you@example.com">
+    </label>
+
+    <label class="field">
+      <span class="field-label">密碼</span>
+      <input id="login-password" type="password" name="password"
+             autocomplete="current-password" required>
+    </label>
+
+    <p id="login-error" class="form-error" hidden></p>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-close-dialog>取消</button>
+      <button id="login-submit" type="submit" class="btn btn-primary">登入</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 短暫提示訊息 -->
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
