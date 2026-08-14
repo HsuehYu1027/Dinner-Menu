@@ -321,16 +321,18 @@ function bindPhotoEditor() {
 function itemEditor(item, index, total) {
   return `
     <div class="item-editor" data-item="${index}">
-      <div class="item-editor-top">
+      <div class="item-editor-row">
         <input class="item-name-input" type="text" data-field="name"
-               placeholder="品項名稱" value="${esc(item.name)}" aria-label="第 ${index + 1} 項名稱">
-        <input class="item-price-input" type="number" inputmode="numeric" min="0" step="1"
-               data-field="price" placeholder="價格"
-               value="${item.price === null || item.price === undefined ? '' : esc(item.price)}"
-               aria-label="第 ${index + 1} 項價格">
+               placeholder="品項名稱（必填）" value="${esc(item.name)}" aria-label="第 ${index + 1} 項名稱">
       </div>
-      <div class="item-editor-mid">
+      <div class="item-editor-row">
+        <input class="item-price-input" type="number" inputmode="numeric" min="0" step="1"
+               data-field="price" placeholder="價格（可留白）"
+               value="${item.price === null || item.price === undefined ? '' : esc(item.price)}"
+               aria-label="第 ${index + 1} 項價格，留白代表時價">
         <input type="text" data-field="category" placeholder="分類（可留白）" value="${esc(item.category ?? '')}">
+      </div>
+      <div class="item-editor-row">
         <input type="text" data-field="note" placeholder="備註（可留白）" value="${esc(item.note ?? '')}">
       </div>
       <div class="item-editor-bottom">
@@ -352,7 +354,8 @@ function menuEditorHtml() {
     <details class="collapse" ${items.length > 0 ? 'open' : ''}>
       <summary>自己打的品項清單${items.length > 0 ? `（${items.length} 項）` : ''}</summary>
       <div class="collapse-body">
-        <p class="field-hint">店家沒有菜單可拍的時候用。有菜單照片的話這裡可以留空。</p>
+        <p class="field-hint">店家沒有菜單可拍的時候用。有菜單照片的話這裡可以留空。<br>
+          只有品項名稱一定要填，價格留白會顯示成「時價」。</p>
         <div id="menu-editor">${itemsHtml()}</div>
         <button type="button" id="add-item" class="btn btn-ghost btn-block">＋ 新增品項</button>
       </div>

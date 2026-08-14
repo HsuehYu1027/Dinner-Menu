@@ -871,12 +871,14 @@ input[type="time"]::-webkit-date-and-time-value { text-align: center; margin: 0;
   margin-bottom: 10px;
 }
 
-.item-editor-top,
-.item-editor-mid { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.item-editor-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .item-editor input { background: var(--surface); }
-.item-name-input { flex: 1; min-width: 0; }
-.item-price-input { width: 96px; flex: none; text-align: right; }
-.item-editor-mid input { flex: 1; min-width: 0; }
+
+/* 用 flex-basis 而不是 width 來分配寬度。
+   全域的 input[type="number"] { width: 100% } 優先權比 class 高，會蓋掉
+   這裡的 width；flex-basis 走的是另一條路，才不會被搶走。 */
+.item-editor-row > input { flex: 1 1 0; min-width: 0; }
+.item-price-input { text-align: right; }
 
 .item-editor-bottom {
   display: flex;
